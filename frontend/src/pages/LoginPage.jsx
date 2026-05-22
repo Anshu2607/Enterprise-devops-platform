@@ -45,7 +45,9 @@ function LoginPage() {
     } catch (error) {
       console.log(error);
 
-      alert("Login failed");
+      console.log(error.response.data);
+
+alert(error.response.data.message);
     }
   };
 
