@@ -8,10 +8,22 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
-  email     String   @unique
+  email     String    @unique
   password  String
-  role      String   @default("developer")
-  createdAt DateTime @default(now())
+  role      String    @default("developer")
+  createdAt DateTime  @default(now())
+
+  projects  Project[]
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  repository  String
+  createdAt   DateTime @default(now())
+
+  userId      String
+  user        User @relation(fields: [userId], references: [id])
 }
