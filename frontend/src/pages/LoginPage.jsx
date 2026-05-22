@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -9,12 +9,18 @@ import { AuthContext } from "../context/AuthContext";
 function LoginPage() {
   const navigate = useNavigate();
 
-  const { login } = useContext(AuthContext);
+  const { login, token } = useContext(AuthContext);
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
+  useEffect(() => {
+    if (token) {
+      navigate("/dashboard");
+    }
+  }, [token, navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -57,21 +63,25 @@ function LoginPage() {
           type="email"
           name="email"
           placeholder="Email"
+          value={formData.email}
           onChange={handleChange}
-          className="w-full p-3 rounded bg-gray-800"
+          className="w-full p-3 rounded bg-gray-800 outline-none"
+          required
         />
 
         <input
           type="password"
           name="password"
           placeholder="Password"
+          value={formData.password}
           onChange={handleChange}
-          className="w-full p-3 rounded bg-gray-800"
+          className="w-full p-3 rounded bg-gray-800 outline-none"
+          required
         />
 
         <button
           type="submit"
-          className="w-full bg-green-600 hover:bg-green-700 p-3 rounded"
+          className="w-full bg-green-600 hover:bg-green-700 transition-all duration-200 p-3 rounded font-semibold"
         >
           Login
         </button>
