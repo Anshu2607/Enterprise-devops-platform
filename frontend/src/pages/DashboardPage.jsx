@@ -18,6 +18,7 @@ import DeploymentTable
   from "../components/DeploymentTable";
 
 import StatsCard from "../components/StatsCard";
+import DeploymentTerminal from "../components/DeploymentTerminal";
 function DashboardPage() {
 
   const [projects, setProjects] =
@@ -143,6 +144,9 @@ const activeDeployments =
       <DeploymentTable
         deployments={deployments}
       />
+      <DeploymentTerminal
+  deployments={deployments}
+/>
 
     </div>
   );

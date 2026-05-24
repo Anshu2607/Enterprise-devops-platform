@@ -42,4 +42,6 @@ model Deployment {
   projectId  String
 
   project    Project @relation(fields: [projectId], references: [id])
+  containerName String?
+  port          Int?
 }

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: node todo app-service
+  namespace: project-6461bec0-5d76-4405-bbaf-45bb4599cdaf
+spec:
+  selector:
+    app: node todo app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer

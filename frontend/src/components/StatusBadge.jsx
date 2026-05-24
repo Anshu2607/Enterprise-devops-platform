@@ -19,6 +19,18 @@ function StatusBadge({ status }) {
       case "cloning":
         return "bg-purple-500";
 
+      case "detecting":
+        return "bg-indigo-500";
+
+      case "installing":
+        return "bg-orange-500";
+
+      case "creating-artifact":
+        return "bg-pink-600";
+
+      case "generating-k8s":
+        return "bg-cyan-600";
+
       default:
         return "bg-gray-500";
     }

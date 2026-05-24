@@ -8,13 +8,13 @@ function DeploymentTable({
 
     <div className="bg-gray-900 p-6 rounded-xl">
 
-      <h2 className="text-2xl font-bold mb-6">
+      <h2 className="text-2xl font-bold mb-6 text-white">
         Deployment History
       </h2>
 
       <div className="overflow-x-auto">
 
-        <table className="w-full">
+        <table className="w-full text-white">
 
           <thead>
 
@@ -34,6 +34,10 @@ function DeploymentTable({
 
               <th className="pb-4">
                 Created
+              </th>
+
+              <th className="pb-4">
+                Port
               </th>
 
             </tr>
@@ -87,6 +91,16 @@ function DeploymentTable({
 
                   </td>
 
+                  <td className="py-4 font-semibold text-cyan-400">
+
+                    {
+                      deployment.port
+                        ? deployment.port
+                        : "-"
+                    }
+
+                  </td>
+
                 </tr>
               ))
             }
@@ -96,6 +110,7 @@ function DeploymentTable({
         </table>
 
       </div>
+
     </div>
   );
 }
