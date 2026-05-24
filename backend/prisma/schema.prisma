@@ -8,40 +8,50 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
-  email     String    @unique
+  email     String   @unique
   password  String
-  role      String    @default("developer")
-  createdAt DateTime  @default(now())
+  role      String   @default("developer")
+  createdAt DateTime @default(now())
 
-  projects  Project[]
+  projects Project[]
 }
 
 model Project {
-  id          String       @id @default(uuid())
-  name        String
-  repository  String
-  createdAt   DateTime     @default(now())
+  id String @id @default(uuid())
 
-  userId      String
-  user        User @relation(fields: [userId], references: [id])
+  name String
+
+  description String?
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id])
 
   deployments Deployment[]
+
+  createdAt DateTime @default(now())
 }
 
 model Deployment {
-  id         String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  status     String   @default("pending")
+  status String
 
-  logs       String?
+  logs String
 
-  createdAt  DateTime @default(now())
+  projectId String
 
-  projectId  String
+  project Project @relation(fields: [projectId], references: [id])
 
-  project    Project @relation(fields: [projectId], references: [id])
   containerName String?
-  port          Int?
+
+  port Int?
+
+  repoUrl String?
+
+  deployedUrl String?
+
+  createdAt DateTime @default(now())
 }

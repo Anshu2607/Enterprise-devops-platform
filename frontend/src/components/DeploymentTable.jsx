@@ -1,118 +1,210 @@
-import StatusBadge from "./StatusBadge";
+import axios from "axios";
 
 function DeploymentTable({
+
   deployments,
+
+  fetchDashboardData,
+
 }) {
 
-  return (
+  const stopDeployment =
+    async (deploymentId) => {
 
-    <div className="bg-gray-900 p-6 rounded-xl">
+      try {
 
-      <h2 className="text-2xl font-bold mb-6 text-white">
-        Deployment History
-      </h2>
+        const token =
+          localStorage.getItem(
+            "token"
+          );
 
-      <div className="overflow-x-auto">
+        await axios.post(
 
-        <table className="w-full text-white">
+          `http://localhost:5000/api/manage/stop/${deploymentId}`,
 
-          <thead>
+          {},
 
-            <tr className="text-left border-b border-gray-700">
+          {
 
-              <th className="pb-4">
-                Project
-              </th>
+            headers: {
 
-              <th className="pb-4">
-                Status
-              </th>
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
 
-              <th className="pb-4">
-                Logs
-              </th>
+        fetchDashboardData();
 
-              <th className="pb-4">
-                Created
-              </th>
+      } catch (error) {
 
-              <th className="pb-4">
-                Port
-              </th>
+        console.log(error);
+      }
+};
 
-            </tr>
+return (
 
-          </thead>
+<div className="
+  bg-gray-900
+  rounded-xl
+  p-6
+">
 
-          <tbody>
+<h2 className="
+  text-2xl
+  font-bold
+  mb-6
+">
 
-            {
-              deployments.map(
-                (deployment) => (
+Deployments
 
-                <tr
-                  key={deployment.id}
-                  className="border-b border-gray-800"
-                >
+</h2>
 
-                  <td className="py-4">
+<div className="
+  overflow-x-auto
+">
 
-                    {
-                      deployment.project.name
-                    }
+<table className="
+  w-full
+  text-left
+">
 
-                  </td>
+<thead>
 
-                  <td className="py-4">
+<tr className="
+  border-b
+  border-gray-700
+">
 
-                    <StatusBadge
-                      status={
-                        deployment.status
-                      }
-                    />
+<th className="p-3">
+Project
+</th>
 
-                  </td>
+<th className="p-3">
+Status
+</th>
 
-                  <td className="py-4">
+<th className="p-3">
+URL
+</th>
 
-                    {
-                      deployment.logs
-                    }
+<th className="p-3">
+Actions
+</th>
 
-                  </td>
+</tr>
 
-                  <td className="py-4">
+</thead>
 
-                    {
-                      new Date(
-                        deployment.createdAt
-                      ).toLocaleString()
-                    }
+<tbody>
 
-                  </td>
+{
+  deployments.map(
+    (deployment) => (
 
-                  <td className="py-4 font-semibold text-cyan-400">
+<tr
+  key={deployment.id}
+  className="
+    border-b
+    border-gray-800
+  "
+>
 
-                    {
-                      deployment.port
-                        ? deployment.port
-                        : "-"
-                    }
+<td className="p-3">
 
-                  </td>
+{
+  deployment.project?.name
+}
 
-                </tr>
-              ))
-            }
+</td>
 
-          </tbody>
+<td className="p-3">
 
-        </table>
+<span className="
+  bg-green-600
+  px-3
+  py-1
+  rounded-full
+  text-sm
+">
 
-      </div>
+{
+  deployment.status
+}
 
-    </div>
-  );
+</span>
+
+</td>
+
+<td className="p-3">
+
+{
+  deployment.deployedUrl
+  ? (
+
+<a
+
+href={
+  deployment.deployedUrl
+}
+
+target="_blank"
+
+className="
+  text-blue-400
+  underline
+"
+>
+
+Open App
+
+</a>
+
+)
+  : (
+    "N/A"
+  )
+}
+
+</td>
+
+<td className="p-3">
+
+<button
+
+onClick={() =>
+  stopDeployment(
+    deployment.id
+  )
+}
+
+className="
+  bg-red-600
+  hover:bg-red-700
+  px-4
+  py-2
+  rounded
+"
+>
+
+Stop
+
+</button>
+
+</td>
+
+</tr>
+))
+}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+);
 }
 
 export default DeploymentTable;

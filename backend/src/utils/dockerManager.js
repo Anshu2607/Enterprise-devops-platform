@@ -2,9 +2,11 @@ const { exec } = require("child_process");
 
 const util = require("util");
 
-const execAsync = util.promisify(exec);
+const execAsync =
+  util.promisify(exec);
 
-const { v4: uuidv4 } = require("uuid");
+const { v4: uuidv4 } =
+  require("uuid");
 
 const runContainer = async (
 
@@ -26,12 +28,10 @@ const runContainer = async (
     "Starting Docker container..."
   );
 
-  // SIMULATED CONTAINER RUN
-
   const command = `
     docker run -d
     --name ${containerName}
-    -p ${randomPort}:3000
+    -p ${randomPort}:80
     nginx
   `;
 
@@ -45,6 +45,46 @@ const runContainer = async (
   };
 };
 
+const stopContainer = async (
+  containerName
+) => {
+
+  const command = `
+    docker stop ${containerName}
+  `;
+
+  await execAsync(command);
+};
+
+const startContainer = async (
+  containerName
+) => {
+
+  const command = `
+    docker start ${containerName}
+  `;
+
+  await execAsync(command);
+};
+
+const deleteContainer = async (
+  containerName
+) => {
+
+  const command = `
+    docker rm -f ${containerName}
+  `;
+
+  await execAsync(command);
+};
+
 module.exports = {
+
   runContainer,
+
+  stopContainer,
+
+  startContainer,
+
+  deleteContainer,
 };

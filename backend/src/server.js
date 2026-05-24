@@ -1,52 +1,104 @@
+require("dotenv").config();
+
 const express = require("express");
 
 const cors = require("cors");
 
 const http = require("http");
 
-const { Server } = require("socket.io");
+const authRoutes = require(
+  "./routes/authRoutes"
+);
 
-require("dotenv").config();
+const projectRoutes = require(
+  "./routes/projectRoutes"
+);
 
-const authRoutes = require("./routes/authRoutes");
+const deploymentRoutes = require(
+  "./routes/deploymentRoutes"
+);
 
-const projectRoutes = require("./routes/projectRoutes");
+const deploymentsRoutes = require(
+  "./routes/deploymentsRoutes"
+);
 
-const deploymentRoutes = require("./routes/deploymentRoutes");
+const manageDeploymentRoutes =
+  require(
+    "./routes/manageDeploymentRoutes"
+  );
+
+const {
+
+  initSocket,
+
+} = require("./socket");
 
 const app = express();
 
-const server = http.createServer(app);
+const server =
+  http.createServer(app);
 
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:5173",
-  },
-});
+// SOCKET.IO
 
-global.io = io;
+initSocket(server);
+
+// MIDDLEWARES
 
 app.use(cors());
 
 app.use(express.json());
 
-app.use("/api/auth", authRoutes);
+// TEST ROUTE
 
-app.use("/api/projects", projectRoutes);
+app.get("/", (req, res) => {
 
-app.use("/api/deploy", deploymentRoutes);
-
-io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
-
-  socket.on("disconnect", () => {
-    console.log("Client disconnected");
-  });
+  res.send(
+    "Enterprise DevOps Platform API Running"
+  );
 });
 
-const PORT = process.env.PORT || 5000;
+// AUTH ROUTES
+
+app.use(
+  "/api/auth",
+  authRoutes
+);
+
+// PROJECT ROUTES
+
+app.use(
+  "/api/projects",
+  projectRoutes
+);
+
+// DEPLOY ROUTES
+
+app.use(
+  "/api/deploy",
+  deploymentRoutes
+);
+
+// GET DEPLOYMENTS
+
+app.use(
+  "/api/deployments",
+  deploymentsRoutes
+);
+
+// MANAGE DEPLOYMENTS
+
+app.use(
+  "/api/manage",
+  manageDeploymentRoutes
+);
+
+// START SERVER
+
+const PORT =
+  process.env.PORT || 5000;
 
 server.listen(PORT, () => {
+
   console.log(
     `Server running on port ${PORT}`
   );

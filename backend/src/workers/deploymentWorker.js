@@ -1,288 +1,281 @@
 const { Worker } = require("bullmq");
 
+const connection = require(
+  "../config/redis"
+);
+
+const prisma = require(
+  "../config/prisma"
+);
+
+const docker = require(
+  "../config/docker"
+);
+
+const {
+
+  getIO,
+
+} = require("../socket");
+
 const path = require("path");
 
-const fs = require("fs-extra");
+const fs = require("fs");
 
-const simpleGit = require("simple-git");
+const simpleGit =
+  require("simple-git");
 
-const connection = require("../config/redis");
-
-const prisma = require("../config/prisma");
-
-const {
-  generateK8sFiles,
-} = require("../utils/k8sGenerator");
-
-const {
-  runContainer,
-} = require("../utils/dockerManager");
+const { exec } =
+  require("child_process");
 
 const worker = new Worker(
 
-  "deploymentQueue",
+  "deployment-queue",
 
   async (job) => {
 
     const {
-      deploymentId,
-      projectName,
-      repository,
+
+      projectId,
+
+      repoUrl,
+
     } = job.data;
 
-    const deploymentPath = path.join(
-      __dirname,
-      "../../deployments",
-      deploymentId
-    );
+    const io = getIO();
 
-    const artifactPath = path.join(
-      __dirname,
-      "../../artifacts",
-      `${deploymentId}.txt`
-    );
-
-    try {
-
-      console.log(
-        "Starting deployment for:",
-        projectName
-      );
-
-      // STEP 1 — CLONE REPOSITORY
-
-      await prisma.deployment.update({
-
-        where: {
-          id: deploymentId,
-        },
+    const deployment =
+      await prisma.deployment.create({
 
         data: {
+
+          projectId,
+
+          repoUrl,
 
           status: "cloning",
 
-          logs: "Cloning repository...",
+          logs:
+            "Starting deployment...",
         },
       });
 
-      console.log("Cloning repository...");
+    const emitLog =
+      async (status, logs) => {
+
+        await prisma.deployment.update({
+
+          where: {
+            id: deployment.id,
+          },
+
+          data: {
+            status,
+            logs,
+          },
+        });
+
+        io.emit(
+
+          "deployment-log",
+
+          {
+
+            deploymentId:
+              deployment.id,
+
+            status,
+
+            logs,
+          }
+        );
+      };
+
+    try {
+
+      const deployPath =
+        path.join(
+
+          __dirname,
+
+          "../../deployments",
+
+          deployment.id
+        );
+
+      if (
+        !fs.existsSync(
+          deployPath
+        )
+      ) {
+
+        fs.mkdirSync(
+
+          deployPath,
+
+          {
+            recursive: true,
+          }
+        );
+      }
+
+      // CLONE
+
+      await emitLog(
+
+        "cloning",
+
+        "Cloning repository..."
+      );
 
       await simpleGit().clone(
-        repository,
-        deploymentPath
+
+        repoUrl,
+
+        deployPath
       );
 
-      // STEP 2 — DETECT DOCKERFILE
+      // INSTALL
 
-      await prisma.deployment.update({
+      await emitLog(
 
-        where: {
-          id: deploymentId,
-        },
+        "building",
 
-        data: {
-
-          status: "detecting",
-
-          logs: "Detecting Dockerfile...",
-        },
-      });
-
-      console.log(
-        "Detecting Dockerfile..."
-      );
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 2000)
-      );
-
-      // STEP 3 — INSTALL DEPENDENCIES
-
-      await prisma.deployment.update({
-
-        where: {
-          id: deploymentId,
-        },
-
-        data: {
-
-          status: "installing",
-
-          logs: "Installing dependencies...",
-        },
-      });
-
-      console.log(
         "Installing dependencies..."
       );
 
-      await new Promise((resolve) =>
-        setTimeout(resolve, 3000)
+      await new Promise(
+
+        (resolve, reject) => {
+
+          exec(
+
+            "npm install",
+
+            {
+
+              cwd: deployPath,
+            },
+
+            (error) => {
+
+              if (error)
+                reject(error);
+
+              else resolve();
+            }
+          );
+        }
       );
 
-      // STEP 4 — BUILD APPLICATION
+      // BUILD
 
-      await prisma.deployment.update({
+      await emitLog(
 
-        where: {
-          id: deploymentId,
-        },
+        "building",
 
-        data: {
-
-          status: "building",
-
-          logs: "Building application...",
-        },
-      });
-
-      console.log(
-        "Building application..."
+        "Building project..."
       );
 
-      await new Promise((resolve) =>
-        setTimeout(resolve, 4000)
+      await new Promise(
+
+        (resolve, reject) => {
+
+          exec(
+
+            "npm run build",
+
+            {
+
+              cwd: deployPath,
+            },
+
+            (error) => {
+
+              if (error)
+                reject(error);
+
+              else resolve();
+            }
+          );
+        }
       );
 
-      // STEP 5 — CREATE ARTIFACT
+      // GENERATE PORT
 
-      await prisma.deployment.update({
-
-        where: {
-          id: deploymentId,
-        },
-
-        data: {
-
-          status:
-            "creating-artifact",
-
-          logs:
-            "Creating deployment artifact...",
-        },
-      });
-
-      console.log(
-        "Creating deployment artifact..."
-      );
-
-      await fs.writeFile(
-
-        artifactPath,
-
-        `
-Deployment Artifact
-====================
-
-Project:
-${projectName}
-
-Repository:
-${repository}
-
-Deployment ID:
-${deploymentId}
-
-Status:
-SUCCESS
-
-Generated At:
-${new Date().toISOString()}
-        `
-      );
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 2000)
-      );
-
-      // STEP 6 — GENERATE KUBERNETES FILES
-
-      await prisma.deployment.update({
-
-        where: {
-          id: deploymentId,
-        },
-
-        data: {
-
-          status:
-            "generating-k8s",
-
-          logs:
-            "Generating Kubernetes manifests...",
-        },
-      });
-
-      console.log(
-        "Generating Kubernetes manifests..."
-      );
-
-      await generateK8sFiles(
-
-        deploymentId,
-
-        projectName
-      );
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 3000)
-      );
-
-      // STEP 7 — DEPLOY CONTAINER
-
-      await prisma.deployment.update({
-
-        where: {
-          id: deploymentId,
-        },
-
-        data: {
-
-          status: "deploying",
-
-          logs:
-            "Deploying Docker container...",
-        },
-      });
-
-      console.log(
-        "Deploying Docker container..."
-      );
-
-      const containerData =
-        await runContainer(
-
-          deploymentId,
-
-          projectName
+      const port =
+        Math.floor(
+          3000 + Math.random() * 1000
         );
 
-      await prisma.deployment.update({
+      const containerName =
+        `deployment-${deployment.id}`;
 
-        where: {
-          id: deploymentId,
-        },
+      // CREATE CONTAINER
 
-        data: {
+      await emitLog(
 
-          containerName:
-            containerData.containerName,
+        "deploying",
 
-          port:
-            containerData.port,
-        },
-      });
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 3000)
+        "Starting Docker container..."
       );
 
-      // STEP 8 — COMPLETE
+      const container =
+        await docker.createContainer({
+
+          Image: "node:20",
+
+          name: containerName,
+
+          Tty: true,
+
+          ExposedPorts: {
+
+            "3000/tcp": {},
+          },
+
+          HostConfig: {
+
+            PortBindings: {
+
+              "3000/tcp": [
+
+                {
+                  HostPort:
+                    String(port),
+                },
+              ],
+            },
+
+            Binds: [
+
+              `${deployPath}:/app`,
+            ],
+          },
+
+          WorkingDir: "/app",
+
+          Cmd: [
+
+            "npm",
+
+            "run",
+
+            "dev",
+          ],
+        });
+
+      await container.start();
+
+      const deployedUrl =
+        `http://localhost:${port}`;
+
+      // SAVE DEPLOYMENT
 
       await prisma.deployment.update({
 
         where: {
-          id: deploymentId,
+          id: deployment.id,
         },
 
         data: {
@@ -291,31 +284,42 @@ ${new Date().toISOString()}
 
           logs:
             "Deployment completed successfully",
+
+          containerName,
+
+          port,
+
+          deployedUrl,
         },
       });
 
-      console.log(
-        "Deployment completed for:",
-        projectName
+      io.emit(
+
+        "deployment-log",
+
+        {
+
+          deploymentId:
+            deployment.id,
+
+          status:
+            "completed",
+
+          logs:
+            "Deployment completed successfully",
+        }
       );
 
     } catch (error) {
 
       console.log(error);
 
-      await prisma.deployment.update({
+      await emitLog(
 
-        where: {
-          id: deploymentId,
-        },
+        "failed",
 
-        data: {
-
-          status: "failed",
-
-          logs: error.message,
-        },
-      });
+        String(error)
+      );
     }
   },
 
@@ -324,17 +328,6 @@ ${new Date().toISOString()}
   }
 );
 
-worker.on("completed", (job) => {
-
-  console.log(
-    `Job ${job.id} completed`
-  );
-});
-
-worker.on("failed", (job, err) => {
-
-  console.log(
-    `Job ${job.id} failed`,
-    err
-  );
-});
+console.log(
+  "Deployment worker started..."
+);

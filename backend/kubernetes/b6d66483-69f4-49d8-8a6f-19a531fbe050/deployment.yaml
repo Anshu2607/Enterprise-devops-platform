@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node todo app-deployment
+  namespace: project-b6d66483-69f4-49d8-8a6f-19a531fbe050
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: node todo app
+  template:
+    metadata:
+      labels:
+        app: node todo app
+    spec:
+      containers:
+        - name: node todo app
+          image: node todo app:latest
+          ports:
+            - containerPort: 3000

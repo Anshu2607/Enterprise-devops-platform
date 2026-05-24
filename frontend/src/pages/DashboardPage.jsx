@@ -17,115 +17,136 @@ import ProjectCard
 import DeploymentTable
   from "../components/DeploymentTable";
 
-import StatsCard from "../components/StatsCard";
-import DeploymentTerminal from "../components/DeploymentTerminal";
+import StatsCard
+  from "../components/StatsCard";
+
+import DeploymentTerminal
+  from "../components/DeploymentTerminal";
+
+import socket from "../socket";
+
 function DashboardPage() {
 
   const [projects, setProjects] =
     useState([]);
 
-  const [
-    deployments,
-    setDeployments,
-  ] = useState([]);
+  const [deployments, setDeployments] =
+    useState([]);
 
   const completedDeployments =
-  deployments.filter(
-    (d) => d.status === "completed"
-  ).length;
+    deployments.filter(
+      (d) => d.status === "completed"
+    ).length;
 
-const failedDeployments =
-  deployments.filter(
-    (d) => d.status === "failed"
-  ).length;
+  const activeDeployments =
+    deployments.filter(
+      (d) =>
 
-const activeDeployments =
-  deployments.filter(
-    (d) =>
+        d.status !== "completed" &&
+        d.status !== "failed"
 
-      d.status !== "completed" &&
-      d.status !== "failed"
+    ).length;
 
-  ).length;
+  const fetchDashboardData =
+    async () => {
+
+      try {
+
+        const projectData =
+          await getProjects();
+
+        setProjects(
+          projectData.projects || []
+        );
+
+        const deploymentData =
+          await getDeployments();
+
+        setDeployments(
+          deploymentData.deployments || []
+        );
+
+      } catch (error) {
+
+        console.log(error);
+      }
+  };
 
   useEffect(() => {
 
-  fetchData();
+    fetchDashboardData();
 
-  const interval = setInterval(() => {
+    socket.on(
 
-    fetchData();
+      "deployment-log",
 
-  }, 3000);
+      () => {
 
-  return () => clearInterval(interval);
+        fetchDashboardData();
+      }
+    );
 
-}, []);
+    return () => {
 
-  const fetchData = async () => {
-
-    try {
-
-      const projectData =
-        await getProjects();
-
-      setProjects(
-        projectData.projects
+      socket.off(
+        "deployment-log"
       );
+    };
 
-      const deploymentData =
-        await getDeployments();
-
-      setDeployments(
-        deploymentData.deployments
-      );
-
-    } catch (error) {
-
-      console.log(error);
-    }
-  };
+  }, []);
 
   return (
 
-    <div className="min-h-screen bg-black text-white p-10">
+    <div className="
+      min-h-screen
+      bg-black
+      text-white
+      p-10
+    ">
 
-      <h1 className="text-4xl font-bold mb-10">
+      <h1 className="
+        text-4xl
+        font-bold
+        mb-10
+      ">
 
         Enterprise DevOps Dashboard
 
       </h1>
+
+      {/* STATS */}
+
       <div className="
-  grid
-  grid-cols-1
-  md:grid-cols-3
-  gap-6
-  mb-10
-">
+        grid
+        grid-cols-1
+        md:grid-cols-2
+        gap-6
+        mb-10
+      ">
 
-  <StatsCard
-    title="Projects"
-    value={projects.length}
-    color="bg-blue-700"
-  />
+        <StatsCard
+          title="Projects"
+          value={projects.length}
+          color="bg-blue-700"
+        />
 
-  <StatsCard
-    title="Completed Deployments"
-    value={completedDeployments}
-    color="bg-green-700"
-  />
+        <StatsCard
+          title="Completed Deployments"
+          value={completedDeployments}
+          color="bg-green-700"
+        />
 
-  <StatsCard
-    title="Active Deployments"
-    value={activeDeployments}
-    color="bg-yellow-600"
-  />
-
-</div>
+      </div>
 
       {/* PROJECTS */}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div className="
+        grid
+        grid-cols-1
+        md:grid-cols-3
+        gap-6
+        mb-10
+      ">
 
         {
           projects.map((project) => (
@@ -142,11 +163,20 @@ const activeDeployments =
       {/* DEPLOYMENTS */}
 
       <DeploymentTable
+
+        deployments={deployments}
+
+        fetchDashboardData={
+          fetchDashboardData
+        }
+
+      />
+
+      {/* TERMINAL */}
+
+      <DeploymentTerminal
         deployments={deployments}
       />
-      <DeploymentTerminal
-  deployments={deployments}
-/>
 
     </div>
   );
