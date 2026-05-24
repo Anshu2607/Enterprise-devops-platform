@@ -1,10 +1,15 @@
-const IORedis = require("ioredis");
+const IORedis =
+  require("ioredis");
 
-const connection = new IORedis({
-  host: "127.0.0.1",
-  port: 6379,
+const connection =
+  new IORedis({
 
-  maxRetriesPerRequest: null,
-});
+    host: "127.0.0.1",
 
-module.exports = connection;
+    port: 6379,
+
+    maxRetriesPerRequest: null,
+  });
+
+module.exports =
+  connection;

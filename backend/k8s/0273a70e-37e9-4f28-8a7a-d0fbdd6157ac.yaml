@@ -1,0 +1,46 @@
+
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: 0273a70e-37e9-4f28-8a7a-d0fbdd6157ac
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: 0273a70e-37e9-4f28-8a7a-d0fbdd6157ac
+
+  template:
+    metadata:
+      labels:
+        app: 0273a70e-37e9-4f28-8a7a-d0fbdd6157ac
+
+    spec:
+      containers:
+        - name: 0273a70e-37e9-4f28-8a7a-d0fbdd6157ac
+          image: deployment-0273a70e-37e9-4f28-8a7a-d0fbdd6157ac
+
+          ports:
+            - containerPort: 3000
+
+---
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: 0273a70e-37e9-4f28-8a7a-d0fbdd6157ac-service
+
+spec:
+  selector:
+    app: 0273a70e-37e9-4f28-8a7a-d0fbdd6157ac
+
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+
+  type: NodePort

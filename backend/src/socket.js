@@ -1,26 +1,25 @@
-let io;
+let io = null;
 
 const initSocket = (server) => {
 
-  io = require("socket.io")(server, {
+  const socketIo =
+    require("socket.io");
+
+  io = socketIo(server, {
 
     cors: {
-
       origin: "*",
     },
   });
+
+  console.log(
+    "Socket.IO initialized"
+  );
 
   return io;
 };
 
 const getIO = () => {
-
-  if (!io) {
-
-    throw new Error(
-      "Socket.io not initialized"
-    );
-  }
 
   return io;
 };

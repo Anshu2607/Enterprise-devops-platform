@@ -7,6 +7,12 @@ const deployProject =
 
     try {
 
+      console.log(
+        "DEPLOY API HIT"
+      );
+
+      console.log(req.body);
+
       const {
 
         projectId,
@@ -33,6 +39,10 @@ const deployProject =
         });
       }
 
+      console.log(
+        "ADDING JOB TO QUEUE..."
+      );
+
       const job =
         await deploymentQueue.add(
 
@@ -45,6 +55,11 @@ const deployProject =
             repoUrl,
           }
         );
+
+      console.log(
+        "JOB ADDED:",
+        job.id
+      );
 
       res.status(200).json({
 

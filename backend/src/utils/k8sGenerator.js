@@ -1,166 +1,96 @@
-const fs = require("fs-extra");
+const fs = require("fs");
 
 const path = require("path");
 
-const YAML = require("yaml");
-
-const generateK8sFiles = async (
+const generateK8sYaml = (
 
   deploymentId,
 
-  projectName
+  imageName,
+
+  port
 
 ) => {
 
-  const namespace = {
-
-    apiVersion: "v1",
-
-    kind: "Namespace",
-
-    metadata: {
-      name:
-        `project-${deploymentId}`,
-    },
-  };
-
-  const deployment = {
-
-    apiVersion: "apps/v1",
-
-    kind: "Deployment",
-
-    metadata: {
-      name:
-        `${projectName.toLowerCase()}-deployment`,
-      namespace:
-        `project-${deploymentId}`,
-    },
-
-    spec: {
-
-      replicas: 2,
-
-      selector: {
-
-        matchLabels: {
-          app:
-            projectName.toLowerCase(),
-        },
-      },
-
-      template: {
-
-        metadata: {
-
-          labels: {
-            app:
-              projectName.toLowerCase(),
-          },
-        },
-
-        spec: {
-
-          containers: [
-
-            {
-              name:
-                projectName.toLowerCase(),
-
-              image:
-                `${projectName.toLowerCase()}:latest`,
-
-              ports: [
-                {
-                  containerPort: 3000,
-                },
-              ],
-            },
-          ],
-        },
-      },
-    },
-  };
-
-  const service = {
-
-    apiVersion: "v1",
-
-    kind: "Service",
-
-    metadata: {
-
-      name:
-        `${projectName.toLowerCase()}-service`,
-
-      namespace:
-        `project-${deploymentId}`,
-    },
-
-    spec: {
-
-      selector: {
-        app:
-          projectName.toLowerCase(),
-      },
-
-      ports: [
-
-        {
-          protocol: "TCP",
-          port: 80,
-          targetPort: 3000,
-        },
-      ],
-
-      type: "LoadBalancer",
-    },
-  };
-
-  const outputDir = path.join(
-
-    __dirname,
-
-    "../../kubernetes",
-
-    deploymentId
+  console.log(
+    "Generating Kubernetes YAML..."
   );
 
-  await fs.ensureDir(outputDir);
+  const yaml = `
 
-  await fs.writeFile(
+apiVersion: apps/v1
+kind: Deployment
 
+metadata:
+  name: ${deploymentId}
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ${deploymentId}
+
+  template:
+    metadata:
+      labels:
+        app: ${deploymentId}
+
+    spec:
+      containers:
+        - name: ${deploymentId}
+          image: ${imageName}
+
+          ports:
+            - containerPort: 3000
+
+---
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: ${deploymentId}-service
+
+spec:
+  selector:
+    app: ${deploymentId}
+
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+
+  type: NodePort
+`;
+
+  const outputPath =
     path.join(
-      outputDir,
-      "namespace.yaml"
-    ),
 
-    YAML.stringify(namespace)
+      __dirname,
+
+      "../../k8s",
+
+      `${deploymentId}.yaml`
+    );
+
+  console.log(
+    "Saving YAML to:",
+    outputPath
   );
 
-  await fs.writeFile(
-
-    path.join(
-      outputDir,
-      "deployment.yaml"
-    ),
-
-    YAML.stringify(deployment)
+  fs.writeFileSync(
+    outputPath,
+    yaml
   );
 
-  await fs.writeFile(
-
-    path.join(
-      outputDir,
-      "service.yaml"
-    ),
-
-    YAML.stringify(service)
+  console.log(
+    "YAML generated successfully"
   );
 
-  return outputDir;
+  return outputPath;
 };
 
 module.exports = {
-  generateK8sFiles,
+  generateK8sYaml,
 };

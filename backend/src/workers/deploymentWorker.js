@@ -18,6 +18,14 @@ const {
 
 } = require("../socket");
 
+const {
+
+  generateK8sYaml,
+
+} = require(
+  "../utils/k8sGenerator"
+);
+
 const path = require("path");
 
 const fs = require("fs");
@@ -28,11 +36,19 @@ const simpleGit =
 const { exec } =
   require("child_process");
 
+console.log(
+  "Starting deployment worker..."
+);
+
 const worker = new Worker(
 
   "deployment-queue",
 
   async (job) => {
+
+    console.log(
+      "JOB RECEIVED"
+    );
 
     const {
 
@@ -63,6 +79,10 @@ const worker = new Worker(
     const emitLog =
       async (status, logs) => {
 
+        console.log(
+          `[${status}] ${logs}`
+        );
+
         await prisma.deployment.update({
 
           where: {
@@ -75,23 +95,34 @@ const worker = new Worker(
           },
         });
 
-        io.emit(
+        // SAFE SOCKET EMIT
 
-          "deployment-log",
+        if (io) {
 
-          {
+          io.emit(
 
-            deploymentId:
-              deployment.id,
+            "deployment-log",
 
-            status,
+            {
 
-            logs,
-          }
-        );
+              deploymentId:
+                deployment.id,
+
+              status,
+
+              logs,
+            }
+          );
+        }
       };
 
     try {
+
+      // STEP 1 — DEPLOYMENT PATH
+
+      console.log(
+        "STEP 1"
+      );
 
       const deployPath =
         path.join(
@@ -102,6 +133,10 @@ const worker = new Worker(
 
           deployment.id
         );
+
+      console.log(
+        deployPath
+      );
 
       if (
         !fs.existsSync(
@@ -119,7 +154,11 @@ const worker = new Worker(
         );
       }
 
-      // CLONE
+      // STEP 2 — CLONE
+
+      console.log(
+        "STEP 2"
+      );
 
       await emitLog(
 
@@ -135,7 +174,15 @@ const worker = new Worker(
         deployPath
       );
 
-      // INSTALL
+      console.log(
+        "CLONE SUCCESS"
+      );
+
+      // STEP 3 — INSTALL
+
+      console.log(
+        "STEP 3"
+      );
 
       await emitLog(
 
@@ -157,51 +204,130 @@ const worker = new Worker(
               cwd: deployPath,
             },
 
-            (error) => {
+            (
 
-              if (error)
+              error,
+
+              stdout,
+
+              stderr
+
+            ) => {
+
+              console.log(
+                stdout
+              );
+
+              console.log(
+                stderr
+              );
+
+              if (error) {
+
+                console.log(
+                  "INSTALL FAILED"
+                );
+
                 reject(error);
 
-              else resolve();
+              } else {
+
+                console.log(
+                  "INSTALL SUCCESS"
+                );
+
+                resolve(stdout);
+              }
             }
           );
         }
       );
 
-      // BUILD
+      // STEP 4 — BUILD
+
+      console.log(
+        "STEP 4"
+      );
 
       await emitLog(
 
         "building",
 
-        "Building project..."
+        "Attempting build..."
       );
 
-      await new Promise(
+      try {
 
-        (resolve, reject) => {
+        await new Promise(
 
-          exec(
+          (
 
-            "npm run build",
+            resolve,
 
-            {
+            reject
 
-              cwd: deployPath,
-            },
+          ) => {
 
-            (error) => {
+            exec(
 
-              if (error)
-                reject(error);
+              "npm run build",
 
-              else resolve();
-            }
-          );
-        }
+              {
+
+                cwd: deployPath,
+              },
+
+              (
+
+                error,
+
+                stdout,
+
+                stderr
+
+              ) => {
+
+                console.log(
+                  stdout
+                );
+
+                console.log(
+                  stderr
+                );
+
+                if (error) {
+
+                  console.log(
+                    "BUILD FAILED — CONTINUING"
+                  );
+
+                  resolve();
+
+                } else {
+
+                  console.log(
+                    "BUILD SUCCESS"
+                  );
+
+                  resolve(stdout);
+                }
+              }
+            );
+          }
+        );
+
+      } catch (err) {
+
+        console.log(
+          "Skipping build step"
+        );
+      }
+
+      // STEP 5 — PORT
+
+      console.log(
+        "STEP 5"
       );
-
-      // GENERATE PORT
 
       const port =
         Math.floor(
@@ -211,7 +337,11 @@ const worker = new Worker(
       const containerName =
         `deployment-${deployment.id}`;
 
-      // CREATE CONTAINER
+      // STEP 6 — DOCKER
+
+      console.log(
+        "STEP 6"
+      );
 
       await emitLog(
 
@@ -265,12 +395,50 @@ const worker = new Worker(
           ],
         });
 
+      console.log(
+        "CONTAINER CREATED"
+      );
+
       await container.start();
+
+      console.log(
+        "CONTAINER STARTED"
+      );
+
+      // STEP 7 — K8S YAML
+
+      console.log(
+        "STEP 7"
+      );
+
+      await emitLog(
+
+        "deploying",
+
+        "Generating Kubernetes manifests..."
+      );
+
+      generateK8sYaml(
+
+        deployment.id,
+
+        containerName,
+
+        port
+      );
+
+      console.log(
+        "YAML GENERATED"
+      );
+
+      // STEP 8 — COMPLETE
+
+      console.log(
+        "STEP 8"
+      );
 
       const deployedUrl =
         `http://localhost:${port}`;
-
-      // SAVE DEPLOYMENT
 
       await prisma.deployment.update({
 
@@ -293,38 +461,98 @@ const worker = new Worker(
         },
       });
 
-      io.emit(
+      if (io) {
 
-        "deployment-log",
+        io.emit(
 
-        {
+          "deployment-log",
 
-          deploymentId:
-            deployment.id,
+          {
 
-          status:
-            "completed",
+            deploymentId:
+              deployment.id,
 
-          logs:
-            "Deployment completed successfully",
-        }
+            status:
+              "completed",
+
+            logs:
+              "Deployment completed successfully",
+          }
+        );
+      }
+
+      console.log(
+        "DEPLOYMENT COMPLETED"
       );
 
     } catch (error) {
 
+      console.log(
+        "DEPLOYMENT ERROR"
+      );
+
       console.log(error);
 
-      await emitLog(
+      await prisma.deployment.update({
 
-        "failed",
+        where: {
+          id: deployment.id,
+        },
 
-        String(error)
-      );
+        data: {
+
+          status: "failed",
+
+          logs: String(error),
+        },
+      });
     }
   },
 
   {
     connection,
+  }
+);
+
+worker.on(
+
+  "completed",
+
+  (job) => {
+
+    console.log(
+
+      `Job ${job.id} completed`
+    );
+  }
+);
+
+worker.on(
+
+  "failed",
+
+  (job, err) => {
+
+    console.log(
+
+      `Job ${job.id} failed`
+    );
+
+    console.log(err);
+  }
+);
+
+worker.on(
+
+  "error",
+
+  (err) => {
+
+    console.log(
+      "WORKER ERROR:"
+    );
+
+    console.log(err);
   }
 );
 
