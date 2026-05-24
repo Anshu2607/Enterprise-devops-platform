@@ -1,98 +1,148 @@
-import { useContext, useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
-import { useNavigate } from "react-router-dom";
+import {
+  getProjects,
+} from "../services/projectService";
 
-import API from "../api/axios";
+import {
+  getDeployments,
+} from "../services/deploymentService";
 
-import { AuthContext } from "../context/AuthContext";
+import ProjectCard
+  from "../components/ProjectCard";
 
-import CreateProjectForm from "../components/CreateProjectForm";
+import DeploymentTable
+  from "../components/DeploymentTable";
 
-import ProjectCard from "../components/ProjectCard";
-import DeploymentLogs from "../components/DeploymentLogs";
+import StatsCard from "../components/StatsCard";
 function DashboardPage() {
 
-  const navigate = useNavigate();
+  const [projects, setProjects] =
+    useState([]);
 
-  const { logout } = useContext(AuthContext);
+  const [
+    deployments,
+    setDeployments,
+  ] = useState([]);
 
-  const [projects, setProjects] = useState([]);
+  const completedDeployments =
+  deployments.filter(
+    (d) => d.status === "completed"
+  ).length;
 
-  const fetchProjects = async () => {
+const failedDeployments =
+  deployments.filter(
+    (d) => d.status === "failed"
+  ).length;
+
+const activeDeployments =
+  deployments.filter(
+    (d) =>
+
+      d.status !== "completed" &&
+      d.status !== "failed"
+
+  ).length;
+
+  useEffect(() => {
+
+  fetchData();
+
+  const interval = setInterval(() => {
+
+    fetchData();
+
+  }, 3000);
+
+  return () => clearInterval(interval);
+
+}, []);
+
+  const fetchData = async () => {
+
     try {
 
-      const response = await API.get("/projects");
+      const projectData =
+        await getProjects();
 
-      setProjects(response.data.projects);
+      setProjects(
+        projectData.projects
+      );
+
+      const deploymentData =
+        await getDeployments();
+
+      setDeployments(
+        deploymentData.deployments
+      );
 
     } catch (error) {
+
       console.log(error);
     }
   };
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const handleLogout = () => {
-    logout();
-
-    navigate("/login");
-  };
-
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-10">
 
-      <div className="flex justify-between items-center mb-10">
+    <div className="min-h-screen bg-black text-white p-10">
 
-        <h1 className="text-4xl font-bold">
-          Enterprise Dashboard
-        </h1>
+      <h1 className="text-4xl font-bold mb-10">
 
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded"
-        >
-          Logout
-        </button>
+        Enterprise DevOps Dashboard
 
-      </div>
+      </h1>
+      <div className="
+  grid
+  grid-cols-1
+  md:grid-cols-3
+  gap-6
+  mb-10
+">
 
-      <div className="grid md:grid-cols-2 gap-8">
+  <StatsCard
+    title="Projects"
+    value={projects.length}
+    color="bg-blue-700"
+  />
 
-        <CreateProjectForm
-          fetchProjects={fetchProjects}
-        />
+  <StatsCard
+    title="Completed Deployments"
+    value={completedDeployments}
+    color="bg-green-700"
+  />
 
-        <div className="space-y-6">
+  <StatsCard
+    title="Active Deployments"
+    value={activeDeployments}
+    color="bg-yellow-600"
+  />
 
-          <h2 className="text-3xl font-bold">
-            Your Projects
-          </h2>
-
-          {
-            projects.length === 0
-            ? (
-              <p className="text-gray-400">
-                No projects yet
-              </p>
-            )
-            : (
-              projects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                />
-              ))
-            )
-          }
-
-        </div>
-        <div className="mt-10">
-  <DeploymentLogs />
 </div>
 
+      {/* PROJECTS */}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+
+        {
+          projects.map((project) => (
+
+            <ProjectCard
+              key={project.id}
+              project={project}
+            />
+          ))
+        }
+
       </div>
+
+      {/* DEPLOYMENTS */}
+
+      <DeploymentTable
+        deployments={deployments}
+      />
 
     </div>
   );

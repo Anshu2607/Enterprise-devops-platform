@@ -1,18 +1,29 @@
-import { Routes, Route } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
-import RegisterPage from "./pages/RegisterPage";
-import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/DashboardPage";
+import LoginPage
+  from "./pages/LoginPage";
 
-import ProtectedRoute from "./routes/ProtectedRoute";
+import RegisterPage
+  from "./pages/RegisterPage";
+
+import DashboardPage
+  from "./pages/DashboardPage";
 
 function App() {
+
   return (
+
     <Routes>
 
       <Route
-        path="/register"
-        element={<RegisterPage />}
+        path="/"
+        element={
+          <Navigate to="/login" />
+        }
       />
 
       <Route
@@ -21,12 +32,13 @@ function App() {
       />
 
       <Route
+        path="/register"
+        element={<RegisterPage />}
+      />
+
+      <Route
         path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        }
+        element={<DashboardPage />}
       />
 
     </Routes>
