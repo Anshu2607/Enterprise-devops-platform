@@ -1,4 +1,8 @@
-import axios from "axios";
+import {
+
+  deleteDeployment,
+
+} from "../services/deploymentService";
 
 function DeploymentTable({
 
@@ -8,30 +12,13 @@ function DeploymentTable({
 
 }) {
 
-  const stopDeployment =
-    async (deploymentId) => {
+  const handleDelete =
+    async (id) => {
 
       try {
 
-        const token =
-          localStorage.getItem(
-            "token"
-          );
-
-        await axios.post(
-
-          `http://localhost:5000/api/manage/stop/${deploymentId}`,
-
-          {},
-
-          {
-
-            headers: {
-
-              Authorization:
-                `Bearer ${token}`,
-            },
-          }
+        await deleteDeployment(
+          id
         );
 
         fetchDashboardData();
@@ -40,18 +27,16 @@ function DeploymentTable({
 
         console.log(error);
       }
-};
+    };
 
-return (
+  return (
 
 <div className="
-  bg-gray-900
-  rounded-xl
-  p-6
+  mt-10
 ">
 
 <h2 className="
-  text-2xl
+  text-3xl
   font-bold
   mb-6
 ">
@@ -66,30 +51,42 @@ Deployments
 
 <table className="
   w-full
+  bg-gray-900
+  rounded-xl
+  overflow-hidden
+">
+
+<thead className="
+  bg-gray-800
+">
+
+<tr>
+
+<th className="
+  p-4
   text-left
 ">
 
-<thead>
+Status
 
-<tr className="
-  border-b
-  border-gray-700
+</th>
+
+<th className="
+  p-4
+  text-left
 ">
 
-<th className="p-3">
-Project
-</th>
-
-<th className="p-3">
-Status
-</th>
-
-<th className="p-3">
 URL
+
 </th>
 
-<th className="p-3">
+<th className="
+  p-4
+  text-left
+">
+
 Actions
+
 </th>
 
 </tr>
@@ -99,56 +96,76 @@ Actions
 <tbody>
 
 {
-  deployments.map(
-    (deployment) => (
+
+deployments.map(
+  (deployment) => (
 
 <tr
-  key={deployment.id}
-  className="
-    border-b
-    border-gray-800
-  "
+
+key={deployment.id}
+
+className="
+  border-t
+  border-gray-700
+"
 >
 
-<td className="p-3">
+<td className="
+  p-4
+">
 
-{
-  deployment.project?.name
-}
-
-</td>
-
-<td className="p-3">
-
-<span className="
-  bg-green-600
+<div className={`
+  inline-block
   px-3
   py-1
   rounded-full
   text-sm
-">
+  font-bold
+
+  ${
+
+deployment.status ===
+"completed"
+
+? "bg-green-600"
+
+: deployment.status ===
+"failed"
+
+? "bg-red-600"
+
+: "bg-yellow-600"
+
+}
+`}>
 
 {
-  deployment.status
+deployment.status
 }
 
-</span>
+</div>
 
 </td>
 
-<td className="p-3">
+<td className="
+  p-4
+">
 
 {
-  deployment.deployedUrl
-  ? (
+
+deployment.deployedUrl
+
+? (
 
 <a
 
 href={
-  deployment.deployedUrl
+deployment.deployedUrl
 }
 
 target="_blank"
+
+rel="noreferrer"
 
 className="
   text-blue-400
@@ -161,33 +178,42 @@ Open App
 </a>
 
 )
-  : (
-    "N/A"
-  )
+
+: (
+
+<span>
+
+N/A
+
+</span>
+)
 }
 
 </td>
 
-<td className="p-3">
+<td className="
+  p-4
+">
 
 <button
 
 onClick={() =>
-  stopDeployment(
-    deployment.id
-  )
+
+handleDelete(
+  deployment.id
+)
+
 }
 
 className="
   bg-red-600
-  hover:bg-red-700
   px-4
   py-2
-  rounded
+  rounded-lg
 "
 >
 
-Stop
+Delete
 
 </button>
 
@@ -207,4 +233,5 @@ Stop
 );
 }
 
-export default DeploymentTable;
+export default
+DeploymentTable;

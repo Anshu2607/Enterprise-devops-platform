@@ -3,84 +3,39 @@ import axios from "axios";
 const API =
   "http://localhost:5000/api";
 
-const getConfig = () => {
-
-  const token =
-    localStorage.getItem("token");
-
-  return {
-
-    headers: {
-
-      Authorization:
-        `Bearer ${token}`,
-    },
-  };
-};
-
-// GET DEPLOYMENTS
-
 export const getDeployments =
   async () => {
 
     const response =
       await axios.get(
 
-        `${API}/deployments`,
-
-        getConfig()
+        `${API}/deployments`
       );
 
     return response.data;
 };
-
-// STOP DEPLOYMENT
-
-export const stopDeployment =
-  async (deploymentId) => {
-
-    const response =
-      await axios.post(
-
-        `${API}/manage/stop/${deploymentId}`,
-
-        {},
-
-        getConfig()
-      );
-
-    return response.data;
-};
-
-// RESTART DEPLOYMENT
-
-export const restartDeployment =
-  async (deploymentId) => {
-
-    const response =
-      await axios.post(
-
-        `${API}/manage/restart/${deploymentId}`,
-
-        {},
-
-        getConfig()
-      );
-
-    return response.data;
-};
-
-// DELETE DEPLOYMENT
 
 export const deleteDeployment =
-  async (deploymentId) => {
+  async (id) => {
 
     const response =
       await axios.delete(
 
-        `${API}/manage/delete/${deploymentId}`,
+        `${API}/delete-deployment/${id}`
+      );
 
-        getConfig()
+    return response.data;
+};
+
+export const deployProject =
+  async (data) => {
+
+    const response =
+      await axios.post(
+
+        `${API}/deploy`,
+
+        data
       );
 
     return response.data;

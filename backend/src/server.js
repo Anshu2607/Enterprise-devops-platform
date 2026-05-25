@@ -27,6 +27,11 @@ const manageDeploymentRoutes =
     "./routes/manageDeploymentRoutes"
   );
 
+const deleteDeploymentRoutes =
+  require(
+    "./routes/deleteDeploymentRoutes"
+  );
+
 const {
 
   initSocket,
@@ -90,6 +95,13 @@ app.use(
 app.use(
   "/api/manage",
   manageDeploymentRoutes
+);
+
+app.use(
+
+  "/api/delete-deployment",
+
+  deleteDeploymentRoutes
 );
 
 // START SERVER

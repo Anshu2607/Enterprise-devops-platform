@@ -26,6 +26,22 @@ const {
   "../utils/k8sGenerator"
 );
 
+const {
+
+  streamContainerLogs,
+
+} = require(
+  "../utils/containerLogs"
+);
+
+const {
+
+  detectStartCommand,
+
+} = require(
+  "../utils/detectStartCommand"
+);
+
 const path = require("path");
 
 const fs = require("fs");
@@ -337,6 +353,18 @@ const worker = new Worker(
       const containerName =
         `deployment-${deployment.id}`;
 
+      // DETECT START COMMAND
+
+      const startCommand =
+        detectStartCommand(
+          deployPath
+        );
+
+      console.log(
+        "START COMMAND:",
+        startCommand
+      );
+
       // STEP 6 — DOCKER
 
       console.log(
@@ -385,14 +413,7 @@ const worker = new Worker(
 
           WorkingDir: "/app",
 
-          Cmd: [
-
-            "npm",
-
-            "run",
-
-            "dev",
-          ],
+          Cmd: startCommand,
         });
 
       console.log(
@@ -403,6 +424,17 @@ const worker = new Worker(
 
       console.log(
         "CONTAINER STARTED"
+      );
+
+      // LIVE CONTAINER LOGS
+
+      await streamContainerLogs(
+
+        containerName,
+
+        io,
+
+        deployment.id
       );
 
       // STEP 7 — K8S YAML
